@@ -1,0 +1,77 @@
+click = async () => {
+  try {
+    await Excel.run(async (context) => {
+      // Create a new worksheet named "RAW"
+      const rawSheet = context.workbook.worksheets.add("RAW");
+
+      // Insert your Excel code here
+      const response = [
+        {
+          name: "Atharva"
+        },
+        {
+          name: "Prasanna"
+        },
+        {
+          name: "Someone"
+        }
+      ];
+
+      // Get the range where the values should be inserted in RAW sheet
+      const startCell = rawSheet.getRange("A1");
+      const endCell = startCell.getOffsetRange(response.length - 1, 0);
+      const range = startCell.getBoundingRect(endCell);
+
+      // Insert the values from the response array into the column in RAW sheet
+      for (let i = 0; i < response.length; i++) {
+        range.getCell(i, 0).values = [[response[i].name]];
+      }
+
+      // Update the fill color of the range in RAW sheet
+      range.format.fill.color = "yellow";
+
+      // Get the range containing the names in RAW sheet
+      const rawNamesRange = rawSheet.getRange("A1:A" + response.length);
+
+      // Load the names range to sync with the workbook
+      rawNamesRange.load("values");
+
+      // Synchronize the changes with the workbook
+      await context.sync();
+
+      // Get the first worksheet (Sheet1)
+      const sheet1 = context.workbook.worksheets.getActiveWorksheet();
+
+      // Number of dropdowns to create (you can set this variable to the desired number)
+      const numberOfDropdowns = 2; // Change this value to create the desired number of dropdowns
+
+      // Get the range in column C where the selected values should be displayed
+      const selectedValuesRange = sheet1.getRange(`C1:C${numberOfDropdowns}`);
+
+      // Create dropdowns and set data validation dynamically
+      for (let i = 0; i < numberOfDropdowns; i++) {
+        const dropdownRange = sheet1.getRange(`A${i + 1}`);
+        dropdownRange.dataValidation.rule = {
+          list: {
+            inCellDropDown: true, // Show the dropdown always
+            source: rawNamesRange
+          }
+        };
+      }
+
+      // Synchronize the changes to show dropdowns
+      await context.sync();
+
+      // Get the selected values from the dropdowns in column A and set them in column C
+      for (let i = 0; i < numberOfDropdowns; i++) {
+        const selectedValue = sheet1.getRange(`A${i + 1}`).values[0][0];
+        selectedValuesRange.getCell(i, 0).values = [[selectedValue]];
+      }
+
+      await context.sync();
+      console.log(`Dropdowns created and selected values displayed in column C.`);
+    });
+  } catch (error) {
+    console.error(error);
+  }
+};
